@@ -19,6 +19,22 @@ npm run start:bridge
 
 先调用 `eda_session`，随后调用 `eda_workflow` 的 `start` 阶段。所有设计操作携带返回的 target；写入同时需要唯一 operationId。默认直接暴露少量工具，其余使用 `eda_find_tools`、`eda_tool_schema`、`eda_invoke` 获取完整参数并受校验调用。
 
+## 配套 Skill
+
+仓库包含可本地安装的 [better-jlc-mcp skill](skills/better-jlc-mcp/SKILL.md)，提供按阶段加载的原理图、布局、模型逐网布线、验证及故障恢复指导。
+
+在仓库根目录执行以下 PowerShell 命令可安装到 Codex 技能目录。已有同名技能时停止，先比较本地定制内容再更新。
+
+```powershell
+$skillRoot = if ($env:CODEX_HOME) { Join-Path $env:CODEX_HOME 'skills' } else { Join-Path $env:USERPROFILE '.codex/skills' }
+$skillTarget = Join-Path $skillRoot 'better-jlc-mcp'
+if (Test-Path -LiteralPath $skillTarget) { throw 'Skill already exists; compare before updating.' }
+New-Item -ItemType Directory -Path $skillRoot -Force | Out-Null
+Copy-Item -LiteralPath './skills/better-jlc-mcp' -Destination $skillTarget -Recurse
+```
+
+调用示例：`$better-jlc-mcp 检查当前工程，继续原理图与 PCB 设计`。Skill 支持自动匹配，也可显式调用；它提供操作指导，MCP 服务与官方桥接仍需按上方说明配置。安装后若当前会话未列出技能，请在新会话中使用。
+
 ## 设计闭环
 
 1. 官方器件库搜索、读取实际符号与绑定，按位号和引脚号连接；网络端口通过导线连接，不能仅重叠端点。

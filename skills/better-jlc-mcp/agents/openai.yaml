@@ -1,0 +1,6 @@
+interface:
+  display_name: "Better JLC MCP"
+  short_description: "Model-directed EasyEDA design, routing, and verification"
+  default_prompt: "Use $better-jlc-mcp to inspect my current EasyEDA project and continue the requested design stage with explicit paths and verified results."
+policy:
+  allow_implicit_invocation: true
