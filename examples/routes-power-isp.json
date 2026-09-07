@@ -1,0 +1,12 @@
+{
+  "id":"sample-power-isp-v1",
+  "routes":[
+    {"from":"C3.1","to":"C1.1","segments":[{"layer":"top","width":0.3,"points":[{"x":12.799976,"y":-6.5},{"x":15.5,"y":-6.5},{"x":17.799976,"y":-8.8}]}]},
+    {"from":"C3.1","to":"J2.2","segments":[{"layer":"top","width":0.3,"points":[{"x":12.799976,"y":-2},{"x":29.46,"y":-2}]}]},
+    {"from":"C1.1","to":"R1.1","segments":[{"layer":"top","width":0.3,"points":[{"x":16,"y":-10},{"x":16,"y":-18.753364}]}]},
+    {"from":"R1.1","to":"R2.1","segments":[{"layer":"top","width":0.3,"points":[{"x":16.246636,"y":-20.5}]}]},
+    {"from":"U1.7","to":"J2.3","vias":[{"x":21.365,"y":-9.2,"diameter":0.6096,"drill":0.3048}],"segments":[{"layer":"top","width":0.25,"points":[{"x":21.365,"y":-9.2}]},{"layer":"bottom","width":0.25,"points":[{"x":21.365,"y":-9.2},{"x":21.365,"y":-10.5},{"x":32,"y":-10.5}]}]},
+    {"from":"U1.6","to":"J2.1","vias":[{"x":22.635,"y":-9.2,"diameter":0.6096,"drill":0.3048}],"segments":[{"layer":"top","width":0.25,"points":[{"x":22.635,"y":-9.2}]},{"layer":"bottom","width":0.25,"points":[{"x":22.635,"y":-9.2},{"x":27.53,"y":-9.2}]}]},
+    {"from":"U1.5","to":"J2.4","vias":[{"x":23.905,"y":-7.8,"diameter":0.6096,"drill":0.3048}],"segments":[{"layer":"top","width":0.25,"points":[{"x":23.905,"y":-7.8}]},{"layer":"bottom","width":0.25,"points":[{"x":23.905,"y":-7.8},{"x":26.5,"y":-5.205},{"x":26.5,"y":-2.5},{"x":32,"y":-2.5}]}]}
+  ]
+}

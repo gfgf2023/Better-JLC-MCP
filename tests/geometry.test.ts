@@ -1,0 +1,35 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { checkRoute, connectivity, assembleOutline, routeCoverage } from '../src/geometry.js';
+import { toMm, native, normalizeRoute, routeSchema, type Board, type Route, type Pad } from '../src/model.js';
+
+export const pad = (id: string, x: number, y: number, net = 'N', layer: 'top' | 'bottom' = 'top'): Pad => ({ id, x, y, net, number: id, layers: [layer], shape: 'circle', width: 1, height: 1, rotation: 0 });
+export const board = (): Board => ({ unit: 'mm', revision: 'r1', components: [], pads: [pad('a', 2, 5), pad('b', 18, 5)], tracks: [], vias: [], keepouts: [], outline: [{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }, { x: 0, y: 20 }], unknown: [] });
+export const route = (): Route => ({ net: 'N', from: { padId: 'a' }, to: { padId: 'b' }, unit: 'mm', clearance: 0.2, vias: [], segments: [{ layer: 'top', width: 0.25, points: [{ x: 2, y: 5 }, { x: 18, y: 5 }] }] });
+test('PCB and schematic units differ by 10x', () => { assert.equal(toMm(100, 'mil'), 2.54); assert.equal(native(2.54, 'pcb'), 100); assert.equal(native(2.54, 'schematic'), 10); });
+test('route schema rejects nonfinite and nonpositive geometry', () => { assert.equal(routeSchema.safeParse({ ...route(), segments: [{ layer: 'top', width: -1, points: [{ x: Infinity, y: 0 }] }] }).success, false); });
+test('one short track is not a routed network', () => { const b = board(); b.tracks.push({ id: 't', net: 'N', layer: 'top', start: { x: 2, y: 5 }, end: { x: 3, y: 5 }, width: 0.25 }); assert.equal(connectivity(b).nets[0].status, 'disconnected'); });
+test('clear route passes, actual complete track connects', () => { const b = board(), checked = checkRoute(b, route()); assert.equal(checked.passed, true, JSON.stringify(checked)); b.tracks = checked.tracks; assert.equal(connectivity(b).passed, true); });
+test('different layers crossing do not connect', () => { const b = board(); b.pads[1].layers = ['bottom']; b.tracks = [{ id: 't1', net: 'N', layer: 'top', start: b.pads[0], end: { x: 10, y: 5 }, width: 0.25 }, { id: 't2', net: 'N', layer: 'bottom', start: { x: 10, y: 5 }, end: b.pads[1], width: 0.25 }]; assert.equal(connectivity(b).passed, false); b.vias.push({ id: 'v', net: 'N', x: 10, y: 5, diameter: 0.6, drill: 0.3, layers: ['top', 'bottom'] }); assert.equal(connectivity(b).passed, true); });
+test('layer transition requires actual through connection', () => { const b = board(); b.pads[1].layers = ['bottom']; const r = route(); r.segments = [{ layer: 'top', width: 0.25, points: [b.pads[0], { x: 10, y: 5 }] }, { layer: 'bottom', width: 0.25, points: [{ x: 10, y: 5 }, b.pads[1]] }]; assert.equal(checkRoute(b, r).passed, false); r.vias.push({ x: 10, y: 5, drill: 0.3, diameter: 0.6 }); assert.equal(checkRoute(b, r).passed, true); });
+test('reject foreign pad and existing copper collision', () => { const b = board(); b.pads.push(pad('obstacle', 10, 5, 'GND')); assert.ok(checkRoute(b, route()).conflicts.some(c => c.object === 'obstacle')); b.pads.pop(); b.tracks.push({ id: 'gnd', net: 'GND', layer: 'top', width: 0.3, start: { x: 10, y: 1 }, end: { x: 10, y: 19 } }); assert.equal(checkRoute(b, route()).passed, false); });
+test('rotated rectangle uses real outline instead of center radius', () => { const b = board(); b.pads.push({ ...pad('r', 10, 7, 'GND'), shape: 'rectangle', width: 5, height: 0.5, rotation: 90 }); assert.equal(checkRoute(b, route()).passed, false); b.pads.at(-1)!.rotation = 0; assert.equal(checkRoute(b, route()).passed, true); });
+test('keepout and board edge are rejected', () => { const b = board(); b.keepouts.push({ id: 'k', layers: ['top'], polygon: [{ x: 8, y: 4 }, { x: 12, y: 4 }, { x: 12, y: 6 }, { x: 8, y: 6 }] }); assert.ok(checkRoute(b, route()).conflicts.some(c => c.kind === 'keepout')); b.keepouts = []; const r = route(); r.segments[0].points.splice(1, 0, { x: 10, y: -1 }); assert.equal(checkRoute(b, r).passed, false); });
+test('unknown copper and unsupported pad never produce pass', () => { const b = board(); b.unknown.push('pour geometry unavailable'); assert.equal(checkRoute(b, route()).passed, false); assert.equal(connectivity(b).nets[0].status, 'unknown'); b.unknown = []; b.pads[0].shape = 'unknown'; assert.equal(checkRoute(b, route()).passed, false); });
+test('missing board outline fails closed', () => { const b = board(); b.outline = []; assert.equal(checkRoute(b, route()).passed, false); });
+test('rounded rectangular pads still obstruct routes through their body', () => { const b = board(); b.pads.push({ ...pad('rounded', 10, 5, 'GND'), shape: 'rectangle', width: 2, height: 2, cornerRadius: 0.3, rotation: 45 }); assert.equal(checkRoute(b, route()).passed, false); });
+test('no feasible explicit path is rejected without generated fallback copper', () => { const b = board(); b.keepouts.push({ id: 'wall', layers: ['top', 'bottom'], polygon: [{ x: 8, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 20 }, { x: 8, y: 20 }] }); const before = structuredClone(b); const checked = checkRoute(b, route()); assert.equal(checked.passed, false); assert.deepEqual(b, before); });
+test('three pads require all three connected', () => { const b = board(); b.tracks = checkRoute(b, route()).tracks; b.pads.push(pad('c', 10, 15)); assert.equal(connectivity(b).nets[0].status, 'disconnected'); });
+test('same-layer contact with foreign net reports short', () => { const b = board(); b.tracks = checkRoute(b, route()).tracks; b.pads.push(pad('g', 10, 5, 'GND')); assert.ok(connectivity(b).shorts.length); assert.equal(connectivity(b).passed, false); });
+test('normalize mil geometry and preserve caller input', () => { const r = route(); r.unit = 'mil'; const n = normalizeRoute(r); assert.equal(n.segments[0].width, 0.25 * 0.0254); assert.equal(r.unit, 'mil'); });
+test('outline assembly accepts reversed edges but rejects a gap', () => { const lines = [{ start: { x: 0, y: 0 }, end: { x: 1, y: 0 } }, { start: { x: 1, y: 1 }, end: { x: 1, y: 0 } }, { start: { x: 1, y: 1 }, end: { x: 0, y: 0 } }]; assert.equal(assembleOutline(lines).length, 3); assert.deepEqual(assembleOutline(lines.slice(0, 2)), []); });
+test('readback verifies merged or split paths but rejects gaps and wrong widths', () => {
+  const b = board(), r = route(); b.tracks = checkRoute(b, r).tracks;
+  assert.equal(routeCoverage(b, r).passed, true);
+  const first = b.tracks[0]; b.tracks = [{ ...first, end: { x: 10, y: 5 } }, { ...first, id: 'second', start: { x: 10, y: 5 } }];
+  assert.equal(routeCoverage(b, r).passed, true);
+  b.tracks[1].start.x = 11;
+  assert.equal(routeCoverage(b, r).passed, false);
+  b.tracks = [{ ...first, width: 0.1 }];
+  assert.equal(routeCoverage(b, r).passed, false);
+});

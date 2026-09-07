@@ -1,0 +1,14 @@
+node_modules/
+.easyeda-mcp/
+reports/private/
+dist/
+*.tsbuildinfo
+.env
+*.eext
+*.lcex
+legacy-jlc-bridge/dist/
+legacy-jlc-bridge/build/dist/
+legacy-jlc-bridge/build/package/
+legacy-jlc-bridge/build/*.eext
+legacy-jlc-bridge/build/*.lcex
+legacy-jlc-bridge/node_modules/

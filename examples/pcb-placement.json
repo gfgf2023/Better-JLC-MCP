@@ -1,0 +1,18 @@
+{
+  "id": "sample-layout-v1",
+  "outline": [{"x":0,"y":0},{"x":40,"y":0},{"x":40,"y":-30},{"x":0,"y":-30}],
+  "moves": [
+    {"reference":"U1","x":22,"y":-15,"rotation":0},
+    {"reference":"U2","x":10,"y":-6,"rotation":0},
+    {"reference":"C1","x":18.5,"y":-10,"rotation":0},
+    {"reference":"C2","x":7.5,"y":-8.5,"rotation":0},
+    {"reference":"C3","x":13.5,"y":-4,"rotation":0},
+    {"reference":"C4","x":20.5,"y":-22,"rotation":0},
+    {"reference":"R1","x":18.5,"y":-20.5,"rotation":0},
+    {"reference":"R2","x":17,"y":-22,"rotation":0},
+    {"reference":"J1","x":4,"y":-5,"rotation":0},
+    {"reference":"J2","x":32,"y":-6,"rotation":0},
+    {"reference":"J3","x":4,"y":-24,"rotation":0},
+    {"reference":"J4","x":33,"y":-25,"rotation":0}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "sample-local-v1",
+  "routes": [
+    {"from":"U1.8","to":"C1.1","segments":[{"layer":"top","width":0.3,"points":[{"x":20.095,"y":-8.8},{"x":17.799976,"y":-8.8}]}]},
+    {"from":"U1.1","to":"R1.2","segments":[{"layer":"top","width":0.25,"points":[{"x":20.095,"y":-20.5}]}]},
+    {"from":"U1.2","to":"C4.1","segments":[{"layer":"top","width":0.25,"points":[{"x":21.365,"y":-20.4},{"x":19.799976,"y":-21.965024}]}]},
+    {"from":"C4.1","to":"R2.2","segments":[{"layer":"top","width":0.25,"points":[]}]},
+    {"from":"U1.3","to":"J4.1","segments":[{"layer":"top","width":0.25,"points":[{"x":22.635,"y":-20.6},{"x":23.5,"y":-21.465},{"x":23.5,"y":-23},{"x":25.5,"y":-25}]}]},
+    {"from":"U2.2","to":"C3.1","segments":[{"layer":"top","width":0.3,"points":[{"x":12.799976,"y":-5.05004}]}]},
+    {"from":"U2.3","to":"C2.1","segments":[{"layer":"top","width":0.3,"points":[{"x":6.799976,"y":-6}]}]},
+    {"from":"C2.1","to":"J1.1","segments":[{"layer":"top","width":0.3,"points":[{"x":3.5,"y":-8.5},{"x":2.73,"y":-7.73}]}]}
+  ]
+}

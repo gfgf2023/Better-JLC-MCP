@@ -1,0 +1,30 @@
+{
+  "name": "ATtiny85 external NTC acquisition validation board",
+  "libraryUuid": "0819f05c4eef4c71ace90d822a990e87",
+  "constraints": ["5V input, MCP1700 3.3V rail", "MCU uses internal oscillator at a frequency valid for 3.3V", "J2 is AVR ISP: MISO/VCC/SCK/MOSI/RESET/GND", "External 10k NTC connects J3.1 to J3.2; divider pull-up is R2", "ADC capacitor C4 close to U1.2", "Not a production-qualified design"],
+  "components": [
+    {"reference":"U1","deviceUuid":"c2b7d1541af54b7396c2365791f85424","part":"C89852","x":100.33,"y":-80.01},
+    {"reference":"U2","deviceUuid":"a88908fa48f34822bc7514034aa8c9eb","part":"C39051","x":45.72,"y":-40.64},
+    {"reference":"C1","deviceUuid":"96b39256cc3f4d80bd3b503deb4f3328","part":"C14663","x":165.1,"y":-101.6},
+    {"reference":"C2","deviceUuid":"f4744ff7405a46a48e360c2c6fadeca3","part":"C15849","x":30.48,"y":-55.88},
+    {"reference":"C3","deviceUuid":"f4744ff7405a46a48e360c2c6fadeca3","part":"C15849","x":66.04,"y":-55.88},
+    {"reference":"C4","deviceUuid":"96b39256cc3f4d80bd3b503deb4f3328","part":"C14663","x":60.96,"y":-93.98},
+    {"reference":"R1","deviceUuid":"b948db94476e4027ac8953235755ec96","part":"C25804","x":60.96,"y":-116.84},
+    {"reference":"R2","deviceUuid":"b948db94476e4027ac8953235755ec96","part":"C25804","x":45.72,"y":-81.28},
+    {"reference":"J1","deviceUuid":"eab4a8150b6d4918927e38d645cd50f2","part":"C124375","x":15.24,"y":-40.64},
+    {"reference":"J2","deviceUuid":"8aa16cccc27d4966b313274d43cad122","part":"C402781","x":208.28,"y":-60.96},
+    {"reference":"J3","deviceUuid":"eab4a8150b6d4918927e38d645cd50f2","part":"C124375","x":15.24,"y":-81.28},
+    {"reference":"J4","deviceUuid":"eab4a8150b6d4918927e38d645cd50f2","part":"C124375","x":208.28,"y":-106.68}
+  ],
+  "nets": {
+    "VIN5V": ["J1.1","U2.3","C2.1"],
+    "VCC3V3": ["U2.2","C3.1","U1.8","C1.1","J2.2","R1.1","R2.1"],
+    "GND": ["J1.2","U2.1","C2.2","C3.2","U1.4","C1.2","C4.2","J2.6","J3.2","J4.2"],
+    "RESET": ["U1.1","R1.2","J2.5"],
+    "ISP_SCK": ["U1.7","J2.3"],
+    "ISP_MISO": ["U1.6","J2.1"],
+    "ISP_MOSI": ["U1.5","J2.4"],
+    "NTC_ADC": ["U1.2","R2.2","C4.1","J3.1"],
+    "GPIO4": ["U1.3","J4.1"]
+  }
+}

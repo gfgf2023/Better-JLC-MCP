@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "easyeda": {
+      "type": "local",
+      "command": ["node", "C:/path/to/easyeda-mcp/dist/server.js"],
+      "enabled": true,
+      "environment": { "EASYEDA_STATE_DIR": "C:/path/to/easyeda-mcp/.easyeda-mcp", "AUTO_SPAWN_BRIDGE": "false" }
+    }
+  }
+}

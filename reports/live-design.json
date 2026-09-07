@@ -1,0 +1,119 @@
+{
+  "timestamp": "2026-09-07T12:41:02.227Z",
+  "version": "3.2.149",
+  "kind": "real-EDA-test",
+  "schematic": {
+    "components": 12,
+    "nets": 9,
+    "expectedPinsPassed": true,
+    "missing": [],
+    "unexpected": [],
+    "drc": {
+      "passed": false,
+      "detailsAvailable": false,
+      "counts": [
+        {
+          "type": "warn",
+          "count": 1
+        }
+      ],
+      "raw": [
+        {
+          "type": "warn",
+          "count": 1
+        }
+      ]
+    },
+    "screenshot": "evidence/schematic.png"
+  },
+  "pcb": {
+    "components": 12,
+    "pads": 35,
+    "tracks": 78,
+    "vias": 9,
+    "outlineVertices": 4,
+    "nets": [
+      {
+        "net": "GND",
+        "status": "connected",
+        "padCount": 10,
+        "islands": 1
+      },
+      {
+        "net": "VCC3V3",
+        "status": "connected",
+        "padCount": 7,
+        "islands": 1
+      },
+      {
+        "net": "VIN5V",
+        "status": "connected",
+        "padCount": 3,
+        "islands": 1
+      },
+      {
+        "net": "NTC_ADC",
+        "status": "connected",
+        "padCount": 4,
+        "islands": 1
+      },
+      {
+        "net": "ISP_MISO",
+        "status": "connected",
+        "padCount": 2,
+        "islands": 1
+      },
+      {
+        "net": "ISP_SCK",
+        "status": "connected",
+        "padCount": 2,
+        "islands": 1
+      },
+      {
+        "net": "ISP_MOSI",
+        "status": "connected",
+        "padCount": 2,
+        "islands": 1
+      },
+      {
+        "net": "RESET",
+        "status": "connected",
+        "padCount": 3,
+        "islands": 1
+      },
+      {
+        "net": "GPIO4",
+        "status": "connected",
+        "padCount": 2,
+        "islands": 1
+      }
+    ],
+    "shorts": 0,
+    "unknown": [],
+    "netContracts": {
+      "missing": [],
+      "unexpected": [],
+      "duplicateReferences": [],
+      "passed": true
+    },
+    "connectivityPassed": true,
+    "drc": {
+      "passed": true,
+      "detailsAvailable": true,
+      "issues": [],
+      "raw": []
+    },
+    "reopened": true,
+    "screenshot": "evidence/pcb.png"
+  },
+  "autorouteExecutions": 0,
+  "comparison": "not_run",
+  "acceptance": "partial",
+  "limitations": [
+    "Schematic API returns one warning category without detail; user reports no visible errors.",
+    "Official importChanges required user confirmation before components appeared.",
+    "createProject failed in local mode; used user-authorized existing empty project.",
+    "Ground return quality and manufacturing suitability have not been accepted.",
+    "No three-arm repeated model comparison has been run."
+  ]
+}

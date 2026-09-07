@@ -1,0 +1,31 @@
+{
+  "name": "easyeda-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "tsx --test tests/*.test.ts",
+    "test:live": "tsx scripts/live-check.ts",
+    "evaluate": "tsx scripts/evaluate.ts",
+    "start:bridge": "node scripts/bridge-server.mjs",
+    "test:bridge": "tsx --test tests/gateway.test.ts tests/mcp.test.ts"
+  },
+  "dependencies": {
+    "@flatten-js/core": "^1.6.8",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.0",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/pngjs": "^6.0.5",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-09-07T12:52:35.094Z",
+  "kind": "live-read-only",
+  "checks": [
+    {
+      "tool": "eda_capabilities",
+      "status": "success",
+      "capabilities": {
+        "pcb_PrimitiveLine.create": true,
+        "pcb_Drc.check": true,
+        "sch_PrimitiveComponent.create": true,
+        "sch_PrimitiveComponent.getAllPinsByPrimitiveId": true,
+        "sch_PrimitiveWire.create": true,
+        "sch_ManufactureData.getNetlistFile": true,
+        "pcb_Document.importChanges": true,
+        "sys_FileManager.getProjectFile": true,
+        "sys_FileManager.getDocumentSource": true,
+        "dmt_EditorControl.getCurrentRenderedAreaImage": true
+      }
+    },
+    {
+      "tool": "pcb_get_state",
+      "status": "success",
+      "geometry": {
+        "components": 12,
+        "pads": 35,
+        "tracks": 78,
+        "unsupported": []
+      }
+    },
+    {
+      "tool": "eda_run_drc",
+      "status": "success",
+      "drc": {
+        "passed": true,
+        "detailsAvailable": true,
+        "issues": [],
+        "raw": []
+      }
+    },
+    {
+      "tool": "eda_screenshot",
+      "status": "success",
+      "pixels": {
+        "valid": true,
+        "width": 1379,
+        "height": 666
+      }
+    }
+  ],
+  "boardAcceptance": "not_run",
+  "connection": {
+    "connected": true,
+    "windows": 1
+  },
+  "passed": true
+}
