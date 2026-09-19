@@ -32,7 +32,7 @@ Supply explicit positions to `pcb_move_components` using the current revision. R
 
 Route structure in version 0.1.0: `net`, `from: {padId}`, `to: {padId}`, `unit`, `segments: [{layer, width, points: [{x,y}, ...]}]`, `vias: [{x,y,diameter,drill}]`, and `clearance`. Read the live schema before constructing a request. Set clearance explicitly in the chosen unit, especially for mil; do not rely on the numeric default.
 
-Unsupported pours, regions, special pads or inner layers prevent a complete geometry check. Report the missing coverage and resolve supported alternatives within design constraints. Do not discard unknown objects just to get a passing result.
+Fixed solid fills, curved outlines and explicit NO_WIRES regions participate in geometry checks. Uncalibrated poured copper, other unsupported regions, special pads or inner layers prevent complete verification. Supported shape edits remain available: read [PCB editing](pcb-editing.md). Do not discard unknown objects just to get a passing result.
 
 ## Review
 

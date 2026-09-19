@@ -26,7 +26,9 @@ export class Registry {
     this.add({ name: 'eda_find_tools', category: 'discovery', description: 'Search available tools by name, category or purpose. Returns typed tool names; inspect eda_tool_schema before invoking.', direct: true, schema: z.object({ query: z.string().default('') }).strict(), handler: async ({ query }) => result([...this.tools.values()].filter(t => this.available(t) && `${t.name} ${t.category} ${t.description}`.toLowerCase().includes(query.toLowerCase())).map(t => ({ name: t.name, category: t.category, description: t.description }))) });
     this.add({ name: 'eda_tool_schema', category: 'discovery', description: 'Return complete JSON Schema, purpose and read/write semantics for one tool.', direct: true, schema: z.object({ name: z.string() }).strict(), handler: async ({ name }) => { const t = this.tools.get(name); if (!t || !this.available(t)) throw new Error('Tool unavailable'); return result(this.describe(t)); } });
     this.add({ name: 'eda_invoke', category: 'discovery', description: 'Execute a discovered tool using its complete schema. Same validation, policy and write checks as direct calls.', direct: true, mutates: true, schema: z.object({ name: z.string(), arguments: z.record(z.unknown()) }).strict(), handler: async ({ name, arguments: args }) => { if (['eda_invoke', 'eda_find_tools', 'eda_tool_schema'].includes(name)) throw new Error('Recursive discovery invocation prohibited'); return this.call(name, args); } });
-    for (const tool of this.tools.values()) if (this.available(tool) && tool.direct) register(tool);
+    // Full typed schemas prevent schema hallucinations behind generic invocation.
+    // Compact exposure remains an explicit option for clients with tight tool budgets.
+    for (const tool of this.tools.values()) if (this.available(tool) && (process.env.EASYEDA_TOOL_MODE !== 'compact' || tool.direct)) register(tool);
   }
 }
 export function toMcp(output: Result): any {

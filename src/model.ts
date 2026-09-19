@@ -24,7 +24,7 @@ export interface Pad extends Point { id: string; net: string; number: string; co
 export interface Track { id: string; net: string; layer: Layer; start: Point; end: Point; width: number; }
 export interface Via extends Point { id: string; net: string; diameter: number; drill: number; layers: Layer[]; }
 export interface Component extends Point { id: string; designator: string; name: string; value?: string; supplierId?: string; rotation: number; locked: boolean; footprint?: any; pads?: any[]; }
-export interface Board { unit: 'mm'; revision: string; components: Component[]; pads: Pad[]; tracks: Track[]; vias: Via[]; outline: Point[]; keepouts: { id: string; layers: Layer[]; polygon: Point[] }[]; unknown: string[]; }
+export interface Board { unit: 'mm'; revision: string; components: Component[]; pads: Pad[]; tracks: Track[]; vias: Via[]; outline: Point[]; outlinePaths?: import('./polygon.js').PathSource[]; copper?: { id: string; net: string; layer: Layer; source: import('./polygon.js').PathSource | import('./polygon.js').PathSource[] }[]; keepouts: { id: string; layers: Layer[]; polygon: Point[]; source?: import('./polygon.js').PathSource }[]; unknown: string[]; }
 export const endpointSchema = z.object({ padId: z.string().min(1) }).strict();
 export const routeSchema = z.object({
   net: z.string().min(1), from: endpointSchema, to: endpointSchema, unit: unitSchema,

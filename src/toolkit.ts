@@ -8,6 +8,9 @@ import { pointSchema, finite, targetSchema, unitSchema, routeSchema, layerSchema
 import { connectivity, checkRoute, routeCoverage } from './geometry.js';
 import { readBoard, readSchematic, readDrc, readNetlist, save, routeWriteCode, libraryProperties, verifyNetContracts, compareBoardSnapshots } from './eda.js';
 import { workflows, memoryRules } from './workflows.js';
+import { installPcbEditing } from './pcb-editing.js';
+import { readPrimitives, comparePrimitiveSnapshots } from './pcb-primitives.js';
+import { polygonIslands } from './polygon.js';
 
 const targeted = { target: targetSchema };
 const mutation = { ...targeted, operationId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/) };
@@ -17,9 +20,10 @@ const assertDomain = (target: Target, domain: Target['domain']) => { if (target.
 const ensureRevision = (actual: string, expected: string) => { if (actual !== expected) throw new Error('STALE_REVISION: Read current document and re-plan'); };
 
 export function buildToolkit(runtime: Runtime, registry = new Registry()) {
+  installPcbEditing(registry, runtime);
   const add = (name: string, category: string, description: string, schema: z.AnyZodObject, handler: (a: any) => Promise<Result>, options: any = {}) => registry.add({ name, category, description, schema, handler, ...options });
   add('eda_session', 'session', 'Inspect bridge, windows, active project, document and boards. Use returned target unchanged on subsequent tools.', z.object({ windowId: z.string().optional() }).strict(), async a => result(await runtime.inspect(a.windowId)), { direct: true });
-  add('eda_workflow', 'guidance', 'Read the workflow for the current design stage, including placement, image feedback and recovery.', z.object({ stage: z.enum(['start', 'schematic', 'placement', 'routing', 'review', 'recovery']) }).strict(), async a => result({ stage: a.stage, instructions: workflows[a.stage as keyof typeof workflows], memoryRules }), { direct: true });
+  add('eda_workflow', 'guidance', 'Read the workflow for the current design stage, including PCB editing, placement, image feedback and recovery.', z.object({ stage: z.enum(['start', 'schematic', 'placement', 'routing', 'review', 'recovery', 'pcb_editing']) }).strict(), async a => result({ stage: a.stage, instructions: workflows[a.stage as keyof typeof workflows], memoryRules }), { direct: true });
   add('eda_capabilities', 'session', 'Inspect method availability; existence is not a successful behavioral test.', z.object(targeted).strict(), async ({ target }) => result(await runtime.read(target, tx => tx.read(`const names=['pcb_PrimitiveLine.create','pcb_Drc.check','sch_PrimitiveComponent.create','sch_PrimitiveComponent.getAllPinsByPrimitiveId','sch_PrimitiveWire.create','sch_ManufactureData.getNetlistFile','pcb_Document.importChanges','sys_FileManager.getProjectFile','sys_FileManager.getDocumentSource','dmt_EditorControl.getCurrentRenderedAreaImage']; return Object.fromEntries(names.map(name=>{const [m,f]=name.split('.');return [name,typeof eda[m]?.[f]==='function'];}));`)), target));
   add('eda_open_document', 'session', 'Activate an explicit document in the same project and return its new target. Does not infer documents from tab titles.', z.object({ ...targeted, documentId: z.string().min(1), domain: z.enum(['pcb', 'schematic']) }).strict(), async a => {
     const data = await runtime.read(a.target, tx => tx.read(`const tab=await eda.dmt_EditorControl.openDocument(${json(a.documentId)}); if(!tab) throw new Error('Document failed to open'); if(!await eda.dmt_EditorControl.activateDocument(tab)) throw new Error('Activation failed'); return await eda.dmt_SelectControl.getCurrentDocumentInfo();`));
@@ -137,7 +141,8 @@ export function buildToolkit(runtime: Runtime, registry = new Registry()) {
     return { ...result({ board: after, drc: await readDrc(tx), mismatches, nextStage: 'placement' }), status: mismatches.length ? 'partial' : 'success' };
   }), { mutates: true });
   add('pcb_create_outline', 'pcb', 'Create a closed straight-segment BOARD_OUTLINE on an empty outline. Not a silkscreen frame.', z.object({ ...mutation, points: z.array(pointSchema).min(3).max(100), unit: unitSchema }).strict(), a => runtime.mutate(a.target, a.operationId, a, async tx => {
-    const before = await readBoard(tx); if (before.outline.length) throw new Error('Outline already exists');
+    const primitives = await readPrimitives(tx); if (primitives.items.some((v:any)=>v.properties.Layer===11)) throw new Error('Outline already exists; use pcb_update_outline_primitive or pcb_replace_outline');
+    polygonIslands([a.points[0].x,a.points[0].y,'L',...a.points.slice(1).flatMap((p:any)=>[p.x,p.y])]);
     const points = a.points.map((p: any) => ({ x: native(toMm(p.x, a.unit), 'pcb'), y: native(toMm(p.y, a.unit), 'pcb') }));
     await tx.write(`const pts=${json(points)},changes=[];try{for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];const line=await eda.pcb_PrimitiveLine.create('',${layers.outline},a.x,a.y,b.x,b.y,1,false);if(!line)throw new Error('Outline creation failed');changes.push({kind:'outline',id:line.getState_PrimitiveId()});}return {status:'success',changes};}catch(e){return {status:'partial',changes,error:String(e)}}`);
     await save(tx); return result(await readBoard(tx));
@@ -169,10 +174,12 @@ export function buildToolkit(runtime: Runtime, registry = new Registry()) {
   add('eda_save', 'project', 'Save exact target document and return source hash for later readback.', z.object(mutation).strict(), a => runtime.mutate(a.target, a.operationId, a, async tx => { await save(tx); return result({ saved: true, sourceHash: hash(await tx.read('return await eda.sys_FileManager.getDocumentSource();')) }); }), { mutates: true });
   add('eda_reopen_and_verify', 'verification', 'Save, close and reopen the exact target document. Compare actual PCB geometry or schematic electrical hash and run DRC.', z.object(mutation).strict(), a => runtime.mutate(a.target, a.operationId, a, async tx => {
     const read = () => a.target.domain === 'pcb' ? readBoard(tx) : readNetlist(tx);
-    const before: any = await read(); await save(tx);
+    const before: any = await read(), primitivesBefore = a.target.domain === 'pcb' ? await readPrimitives(tx) : undefined; await save(tx);
     await tx.write(`if(!await eda.dmt_EditorControl.closeDocument(doc.tabId))throw new Error('Close failed');const tab=await eda.dmt_EditorControl.openDocument(target.documentId);if(!tab||!await eda.dmt_EditorControl.activateDocument(tab))throw new Error('Reopen failed');return {reopened:true};`);
     const after: any = await read(), comparison = a.target.domain === 'pcb' ? compareBoardSnapshots(before, after) : { unchanged: before.electricalHash === after.electricalHash };
-    return { ...result({ reopened: true, ...comparison, before, after, drc: await readDrc(tx) }), status: comparison.unchanged ? 'success' : 'partial' };
+    const primitiveComparison=primitivesBefore?comparePrimitiveSnapshots(primitivesBefore,await readPrimitives(tx)):undefined;
+    const unchanged=comparison.unchanged&&(!primitiveComparison||primitiveComparison.unchanged);
+    return { ...result({ reopened: true, ...comparison, unchanged, primitiveComparison, before, after, drc: await readDrc(tx) }), status: unchanged ? 'success' : 'partial' };
   }), { mutates: true });
   add('eda_screenshot', 'visual', 'Capture target image and optional local region in mm. Returns native MCP image and pixel validity evidence; inspect it visually.', z.object({ ...targeted, region: z.object({ left: finite, right: finite, top: finite, bottom: finite }).strict().optional() }).strict(), async a => runtime.read(a.target, async tx => {
     if (a.region) { const r = a.region; await tx.read(`return await eda.dmt_EditorControl.zoomToRegion(${native(r.left, a.target.domain)},${native(r.right, a.target.domain)},${native(r.top, a.target.domain)},${native(r.bottom, a.target.domain)},doc.tabId);`); }

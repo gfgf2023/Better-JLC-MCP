@@ -12,4 +12,6 @@ KiCAD 原始 MIT 声明见 [docs/licenses/KiCAD-MCP-MIT.txt](docs/licenses/KiCAD
 
 KiCAD 的旧工具隐藏架构已撤回，本项目不以其旧宣传作为实现依据。新的工具注册、schema 检索和受校验调用独立实现。
 
+0.2.0 补充复查 KiCAD-MCP-Server 的 `ac716d1a8bfad325b4aa93a398222645b3f78fd7`（2026-09-20 检查），保留上表首版来源版本。直接工具、语义端点和局部编辑设计为独立实现，未复制新的上游代码；分析与固定源码链接见 [研究记录](docs/KICAD-STUDY-2026-09.md)。EasyEDA API 签名另以官方 `@jlceda/pro-api-types@0.4.25` 对照；方法存在不代表行为验收通过。
+
 运行依赖的许可证以各包内 LICENSE 为准；精确安装版本由 package-lock.json 锁定。Node.js 与 EDA 不包含在本项目内。

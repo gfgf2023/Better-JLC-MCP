@@ -1,9 +1,11 @@
 import { hash, native, layers, type Board, type Pad, type Layer, type Route } from './model.js';
 import { assembleOutline } from './geometry.js';
 import { Transaction } from './runtime.js';
+import { primitiveReader } from './pcb-primitives.js';
+import { scaleSource, polygonIslands, joinOutline, type PathSource } from './polygon.js';
 
 // This function is serialized into the EDA runtime; keep every helper inside it.
-function pcbRead(eda: any) {
+function pcbRead(eda: any, extraReader: any) {
   return (async () => {
     const get = (v: any, name: string) => { const fn = v[`getState_${name}`]; return typeof fn === 'function' ? fn.call(v) : undefined; };
     const rows = async (module: string, fields: string[]) => {
@@ -14,21 +16,14 @@ function pcbRead(eda: any) {
     const pads = await rows('pcb_PrimitivePad', ['PrimitiveId', 'Net', 'PadNumber', 'X', 'Y', 'Layer', 'Pad', 'Rotation', 'Metallization', 'SpecialPad']);
     const lines = await rows('pcb_PrimitiveLine', ['PrimitiveId', 'Net', 'Layer', 'StartX', 'StartY', 'EndX', 'EndY', 'LineWidth']);
     const vias = await rows('pcb_PrimitiveVia', ['PrimitiveId', 'Net', 'X', 'Y', 'Diameter', 'HoleDiameter', 'ViaType']);
-    const unsupported = [];
-    for (const module of ['pcb_PrimitivePour', 'pcb_PrimitiveRegion', 'pcb_PrimitiveArc', 'pcb_PrimitivePolyline', 'pcb_PrimitiveFill']) {
-      if (typeof eda[module]?.getAll !== 'function') { unsupported.push(`${module}: unavailable`); continue; }
-      for (const row of await eda[module].getAll()) {
-        const layer = get(row, 'Layer');
-        if (layer === undefined || layer === 1 || layer === 2 || layer === 11 || layer === 12 || (layer >= 15 && layer <= 46)) unsupported.push(`${module}:${get(row, 'PrimitiveId')}:layer=${layer}`);
-      }
-    }
-    return { components, pads, lines, vias, unsupported };
+    const primitives = await extraReader(eda);
+    return { components, pads, lines, vias, unsupported: primitives.unavailable.map((k:string)=>`${k}: reader unavailable`), primitives: primitives.items };
   })();
 }
 
 export async function readBoard(tx: Transaction): Promise<Board> {
   if (tx.target.domain !== 'pcb') throw new Error('PCB target required');
-  const raw = await tx.read(`const __name=(fn)=>fn; return (${pcbRead.toString()})(eda);`);
+  const raw = await tx.read(`const __name=(fn)=>fn; return (${pcbRead.toString()})(eda, ${primitiveReader.toString()});`);
   const mm = (v: number) => { if (!Number.isFinite(v)) throw new Error('Invalid geometry returned by EDA'); return v * 0.0254; };
   const copperLayers = (layer: number, plated = true): Layer[] => layer === layers.top ? ['top'] : layer === layers.bottom ? ['bottom'] : layer === layers.multi && plated ? ['top', 'bottom'] : [];
   const components = raw.components.map((c: any) => ({ id: c.PrimitiveId, designator: c.Designator ?? '', name: c.Name ?? '', value: [c.OtherProperty?.Value, c.ManufacturerId, c.Name?.startsWith('={') ? undefined : c.Name].find(v => v !== undefined && v !== null && v !== ''), supplierId: c.SupplierId, x: mm(c.X), y: mm(c.Y), rotation: c.Rotation, locked: !!c.PrimitiveLock, footprint: c.Footprint, pads: c.Pads }));
@@ -47,7 +42,31 @@ export async function readBoard(tx: Transaction): Promise<Board> {
     if (v.ViaType !== 0) unknown.push(`Unverified via span ${v.PrimitiveId}:${v.ViaType}`);
     return { id: v.PrimitiveId, net: v.Net ?? '', x: mm(v.X), y: mm(v.Y), diameter: mm(v.Diameter), drill: mm(v.HoleDiameter), layers: v.ViaType === 0 ? ['top', 'bottom'] as Layer[] : [] };
   });
-  return { unit: 'mm', revision: hash(raw), components, pads, tracks, vias, outline, keepouts: [], unknown };
+  const copper: NonNullable<Board['copper']> = [], outlinePaths: PathSource[] = [];
+  const keepouts: Board['keepouts'] = [];
+  for (const item of raw.primitives ?? []) {
+    const v=item.properties, l=v.Layer, relevant=l===1||l===2||l===11||l===12||(l>=15&&l<=46);
+    if (['pad','poured'].includes(item.kind)) continue;
+    if (!relevant) { if(l===undefined)unknown.push(`Missing layer: ${item.kind}:${item.id}`); continue; }
+    try {
+      if(l===11 && ['line','arc','polyline'].includes(item.kind)){
+        const source = item.kind==='line'?[v.StartX,v.StartY,'L',v.EndX,v.EndY]:item.kind==='arc'?[v.StartX,v.StartY,'ARC',v.ArcAngle,v.EndX,v.EndY]:v.Polygon;
+        outlinePaths.push(scaleSource(source,0.0254));
+      } else if (item.kind==='fill'&&(l===1||l===2)&&v.FillMode===0){
+        const nested=Array.isArray(v.ComplexPolygon?.[0]);
+        const source=nested?v.ComplexPolygon.map((s:PathSource)=>scaleSource(s,0.0254)):scaleSource(v.ComplexPolygon,0.0254);
+        polygonIslands(source); copper.push({id:item.id,net:v.Net??'',layer:l===1?'top':'bottom',source});
+      } else if (item.kind==='region'&&(l===1||l===2||l===12)&&Array.isArray(v.RuleType)&&v.RuleType.includes(5)){
+        const source=scaleSource(v.ComplexPolygon,0.0254);polygonIslands(source);
+        keepouts.push({id:item.id,layers:l===12?['top','bottom']:[l===1?'top':'bottom'],polygon:[],source});
+      } else if(item.kind==='line'&&(l===1||l===2)){
+        // Already normalized as tracks above.
+      } else if(item.kind==='pour')unknown.push(`Pour ${item.id}: boundary editable; actual filled copper/freshness not verified`);
+      else unknown.push(`Unsupported geometry: ${item.kind}:${item.id}:layer=${l}`);
+    } catch(error:any){unknown.push(`${item.kind}:${item.id}: ${error.message}`);}
+  }
+  if(outlinePaths.length){try{joinOutline(outlinePaths);}catch(e:any){unknown.push(e.message);}}
+  return { unit: 'mm', revision: hash(raw), components, pads, tracks, vias, outline, ...(outlinePaths.length?{outlinePaths}:{}), copper, keepouts, unknown };
 }
 
 function schematicRead(eda: any) {

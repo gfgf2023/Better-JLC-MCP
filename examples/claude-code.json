@@ -3,7 +3,7 @@
     "easyeda": {
       "command": "node",
       "args": ["C:/path/to/easyeda-mcp/dist/server.js"],
-      "env": { "EASYEDA_STATE_DIR": "C:/path/to/easyeda-mcp/.easyeda-mcp", "AUTO_SPAWN_BRIDGE": "false" }
+      "env": { "EASYEDA_STATE_DIR": "C:/path/to/easyeda-mcp/.easyeda-mcp", "AUTO_SPAWN_BRIDGE": "false", "EASYEDA_TOOL_MODE": "full" }
     }
   }
 }

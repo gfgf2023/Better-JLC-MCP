@@ -1,5 +1,6 @@
 import { point, segment, arc, vector, Polygon, Circle, Box, PlanarSet } from '@flatten-js/core';
 import { type Board, type Point, type Pad, type Track, type Via, type Layer, type Route, normalizeRoute } from './model.js';
+import { polygonIslands, joinOutline } from './polygon.js';
 
 const EPS = 1e-7;
 const p = (v: Point) => point(v.x, v.y);
@@ -46,7 +47,7 @@ function gap(a: Body, b: Body): number {
   return a.shape.distanceTo(b.shape)[0] - a.radius - b.radius;
 }
 const sharesLayer = (a: Body, b: Body) => a.layers.some(l => b.layers.includes(l));
-function bodies(board: Board): Body[] { return [...board.pads.map(padBody).filter((b): b is Body => !!b), ...board.tracks.map(trackBody), ...board.vias.map(viaBody)]; }
+function bodies(board: Board): Body[] { return [...board.pads.map(padBody).filter((b): b is Body => !!b), ...board.tracks.map(trackBody), ...board.vias.map(viaBody), ...(board.copper??[]).flatMap(c=>polygonIslands(c.source).map((shape,i)=>({id:`${c.id}:island:${i}`,net:c.net,layers:[c.layer],shape,radius:0})))]; }
 function expandedBox(body: Body, margin = 0) { const box = body.shape.box, radius = body.radius + margin; return new Box(box.xmin - radius, box.ymin - radius, box.xmax + radius, box.ymax + radius); }
 function spatialIndex(items: Body[]) {
   const index = new PlanarSet(), lookup = new Map<any, Body>();
@@ -103,7 +104,8 @@ export function checkRoute(board: Board, input: Route) {
   const obstacles = bodies(board);
   const nearby = spatialIndex(obstacles);
   for (const pad of board.pads) if (!padBody(pad)) unknown.push(`Unsupported pad ${pad.id}`);
-  const outline = board.outline.length >= 3 ? polygon(board.outline) : undefined;
+  let outline: Polygon | undefined;
+  try { outline = board.outlinePaths?.length ? joinOutline(board.outlinePaths) : board.outline.length >= 3 ? polygon(board.outline) : undefined; } catch { unknown.push('Invalid board outline geometry'); }
   if (!outline || !outline.isValid()) unknown.push('Missing or invalid board outline');
   for (const c of candidates) {
     for (const o of nearby(c, route.clearance)) {
@@ -113,7 +115,8 @@ export function checkRoute(board: Board, input: Route) {
     }
     for (const k of board.keepouts) {
       if (!c.layers.some(l => k.layers.includes(l))) continue;
-      const d = gap(c, { id: k.id, net: '', layers: k.layers, shape: polygon(k.polygon), radius: 0 });
+      const shapes=k.source?polygonIslands(k.source):[polygon(k.polygon)];
+      const d = Math.min(...shapes.map(shape=>gap(c, { id: k.id, net: '', layers: k.layers, shape, radius: 0 })));
       if (d < route.clearance - EPS) conflicts.push({ kind: 'keepout', object: k.id, gap: d });
     }
     if (outline && outline.isValid()) {

@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-20",
+  "sourceVersion": "0.2.0",
+  "editorVersion": "3.2.149.88089769",
+  "nodeVersion": "24.14.1",
+  "scope": "Authorized isolated test PCB; original RF PCB read only",
+  "automatedRegression": { "passed": 61, "failed": 0 },
+  "liveOperations": {
+    "createTestPcb": "partial: created, rename failed",
+    "replaceExistingOutline": "success",
+    "updateOutlinePrimitive": "success: actual replacement ID verified",
+    "createStandalonePad": "success at 2.54 mm requested size",
+    "updatePad": "success",
+    "createFixedCopper": "success",
+    "updateFixedCopper": "success",
+    "createPour": "success",
+    "updatePour": "success with priority preserved",
+    "rebuildPour": "success, electrical verification unknown",
+    "deleteExplicitTestObjects": "success",
+    "saveCloseReopen": "success",
+    "screenshot": "success, visually inspected"
+  },
+  "persistence": {
+    "normalizedBoardUnchanged": true,
+    "editablePrimitivesUnchanged": true,
+    "nativeMilTolerance": 0.0005,
+    "maxNativeMilDrift": 0.000027559055098436147,
+    "pouredData": "exact persistence comparison; units uncalibrated",
+    "nonApplicableForUndrilledPads": ["HoleRotation", "HoleOffsetX", "HoleOffsetY"]
+  },
+  "finalNativeDrc": [],
+  "originalDesignContentUnchanged": true,
+  "automaticRoutingExecutions": 0,
+  "fullElectricalVerification": false,
+  "rfAcceptance": "not_run",
+  "comparativeModelEvaluation": "not_run",
+  "evidenceImage": "evidence/pcb-editing.png"
+}

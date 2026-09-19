@@ -5,7 +5,7 @@
       "type": "local",
       "command": ["node", "C:/path/to/easyeda-mcp/dist/server.js"],
       "enabled": true,
-      "environment": { "EASYEDA_STATE_DIR": "C:/path/to/easyeda-mcp/.easyeda-mcp", "AUTO_SPAWN_BRIDGE": "false" }
+      "environment": { "EASYEDA_STATE_DIR": "C:/path/to/easyeda-mcp/.easyeda-mcp", "AUTO_SPAWN_BRIDGE": "false", "EASYEDA_TOOL_MODE": "full" }
     }
   }
 }

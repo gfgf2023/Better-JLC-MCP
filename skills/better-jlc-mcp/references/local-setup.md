@@ -22,9 +22,12 @@ AUTO_SPAWN_BRIDGE=false
 EASYEDA_COMPAT=0
 EASYEDA_EXPERIMENTAL_ROUTING=0
 EASYEDA_ALLOW_RAW_CODE=0
+EASYEDA_TOOL_MODE=full
 ```
 
 All clients operating on this installation must share the same absolute state directory for operation records and window locks. With auto-spawn disabled, the bridge needs to be running separately. Set `GATEWAY_BASE_URL` only when intentionally pinning a verified endpoint; otherwise use discovery. Preserve unrelated client configuration and credentials when making an authorized setup change.
+
+Version 0.2.0 defaults to full typed tool exposure. Set `EASYEDA_TOOL_MODE=compact` only for a client's tool budget; this does not change execution policy. After updating files, reconnect the MCP or open a new client session so its process and tool list use the new build. Reuse the running official bridge.
 
 After connecting, call `eda_session` and a read-only state tool for the actual document to distinguish transport health from usable EDA access. Keep capability tests read-only unless the current task includes a write. Merely loading this skill is not a reason to modify an open circuit.
 

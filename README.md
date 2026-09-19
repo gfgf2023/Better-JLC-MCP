@@ -2,7 +2,7 @@
 
 面向客户端大模型的嘉立创EDA设计工具。使用官方 Run API Gateway；由模型选择器件、布局并提交明确的逐网路径，服务端负责参数校验、目标绑定、备份、几何检查和读回。无需 Anthropic API Key。
 
-当前为 0.1.0 工程验证版。真实验收进展及限制见 [测试报告](reports/VALIDATION.md)。尚未完成三组效果对照，不能宣称优于原版。
+当前为 0.2.0 工程验证版，新增已有 PCB 铜皮、焊盘和板框编辑。见 [编辑指南](docs/PCB-EDITING.md)、[真实编辑验收](reports/PCB-EDITING-VALIDATION.md)及[首版设计测试报告](reports/VALIDATION.md)。尚未完成三组效果对照，不能宣称优于原版。
 
 ## 启动
 
@@ -17,7 +17,7 @@ npm run start:bridge
 
 在嘉立创EDA扩展中连接 Gateway，然后通过 MCP 客户端启动 `node <项目绝对路径>/dist/server.js`。MCP 使用标准输入输出；日志写入 stderr。客户端示例见 [examples](examples)。
 
-先调用 `eda_session`，随后调用 `eda_workflow` 的 `start` 阶段。所有设计操作携带返回的 target；写入同时需要唯一 operationId。默认直接暴露少量工具，其余使用 `eda_find_tools`、`eda_tool_schema`、`eda_invoke` 获取完整参数并受校验调用。
+先调用 `eda_session`，随后调用 `eda_workflow` 的对应阶段。所有设计操作携带返回的 target；写入同时需要唯一 operationId。默认直接暴露所有启用工具的完整参数；`eda_find_tools`、`eda_tool_schema` 辅助发现。客户端工具预算有限时可设置 `EASYEDA_TOOL_MODE=compact`，再通过 `eda_invoke` 受校验调用；两种模式共用执行策略。
 
 ## 配套 Skill
 
@@ -43,13 +43,17 @@ Copy-Item -LiteralPath './skills/better-jlc-mcp' -Destination $skillTarget -Recu
 4. 模型明确安排器件位置，读取 `pcb_get_routing_context`，调用 `pcb_check_route`、`pcb_apply_route` 提交实际路径。
 5. 每批操作后检查真实几何、连通分量、DRC 和截图，保存证据。
 
+修改已有 PCB 时加载 `eda_workflow: pcb_editing`，读取 `pcb_get_edit_context` 的编辑 revision。用 `pcb_update_pad` 修改板上焊盘，`pcb_create_copper` / `pcb_update_copper` 编辑固定铜或覆铜边框，`pcb_update_outline_primitive` 局部修改板框，或 `pcb_replace_outline` 替换完整轮廓。`pcb_rebuild_pours` 是官方重铺铜，不是自动布线。RF 铜形状是电路结构，不套用普通 MCU 铺地模板。
+
 默认单位为 mm，可显式指定 mil；PCB 原生单位为 mil，原理图为 10mil。层名称使用 top/bottom。
 
 ## 策略与限制
 
 默认执行层拒绝全网自动布线、自动差分布线和组合流水线，兼容入口也不能绕过。`EASYEDA_EXPERIMENTAL_ROUTING=1` 仅开放经校验的单网候选路径查询，不自动落线。任意代码默认关闭；`EASYEDA_ALLOW_RAW_CODE=1` 是独立调试开关，启用后不再具有禁止自动布线的保证。
 
-几何支持双面铜线、常用焊盘、通孔过孔及线段板框。铜皮、部分特殊图元、内层和不能完整解析的几何会明确返回无法完整验证，并阻止布线写入。首版不编辑封装库、不包含 KiCAD 后端，也不提供全板路由器。
+几何支持双面铜线、常用焊盘、通孔过孔、曲线板框、顶底层实心固定铜的孔洞/孤岛及明确禁止走线区域。可编辑并重铺 Pour，但真实填充路径单位尚未可靠标定；内层、部分特殊图元和未知几何仍阻止完整路由验证。支持编辑不等于完整电气验收；不编辑封装库，不包含 KiCAD 后端或全板路由器。
+
+深入复查 KiCAD 当前源码后的工作模式、可借鉴工具及未完成项见 [研究记录](docs/KICAD-STUDY-2026-09.md)。本次采用直接类型工具、语义端点定位和局部编辑闭环；批量原理图、courtyard/文本分类检查及规则持久化仍待实现。
 
 操作记录、文档备份、工程备份与截图存放于 `.easyeda-mcp/`，不应公开。超时后读回并返回 unknown，禁止盲目重试；回退仅删除该操作明确创建的指定图元。连接成功、API 返回 true、存在一段走线均不能代替设计验收。
 
